@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
-  <node pkg="ntrip_ros" type="ntripclient.py" name="ntrip_ros" output="screen">
- 	 <param name="rtcm_topic" value="/rtcm"/>
- 	 <param name="ntrip_server" value="URL:PORT"/>
- 	 <param name="ntrip_user" value="USER"/>
- 	 <param name="ntrip_pass" value="PASS"/>
- 	 <param name="ntrip_stream" value="MOUNTPOINT"/>
- 	 <param name="nmea_gga" value="$GPGGA,..."/>
+  <node pkg="ntrip_ros" type="ntripclient.py" name="ntrip_ros" output="log">
+ 	 <param name="rtcm_topic" value="/ublox_node/rtcm"/>
+ 	 <param name="ntrip_server" value="192.168.1.49:2101"/>
+ 	 <param name="ntrip_user" value="gunby"/>
+ 	 <param name="ntrip_pass" value="gunby"/>
+ 	 <param name="ntrip_stream" value="GUNBY"/>
+ 	 <param name="nmea_gga" value="$GPGGA,5243.682,N,00135.004,W,1,12,1.0,0.0,M,0.0,M,,*75"/>
   </node>
 </launch>
 

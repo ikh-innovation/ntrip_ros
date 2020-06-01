@@ -69,7 +69,7 @@ class ntripconnect(Thread):
                     data = response.read(2)
                     buf += data
                     typ = (ord(data[0]) * 256 + ord(data[1])) / 16
-                    print (str(datetime.now()), cnt, typ)
+                    #print (str(datetime.now()), cnt, typ)
                     cnt = cnt + 1
                     for x in range(cnt):
                         data = response.read(1)
