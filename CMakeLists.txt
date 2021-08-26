@@ -6,7 +6,7 @@ project(ntrip_ros)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
 #  rtcm_msgs
-  nmea_msgs
+#  nmea_msgs
   rospy
   std_msgs
 )
