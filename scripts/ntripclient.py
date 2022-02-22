@@ -15,6 +15,8 @@ from httplib import IncompleteRead
 ''' This is to fix the IncompleteRead error
     http://bobrochel.blogspot.com/2010/11/bad-servers-chunked-encoding-and.html'''
 import httplib
+
+
 def patch_http_response_read(func):
     def inner(*args):
         try:
@@ -22,7 +24,10 @@ def patch_http_response_read(func):
         except httplib.IncompleteRead, e:
             return e.partial
     return inner
+
+
 httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
+
 
 class ntripconnect(Thread):
     def __init__(self, ntc):
@@ -39,9 +44,11 @@ class ntripconnect(Thread):
             'Authorization': 'Basic ' + b64encode(self.ntc.ntrip_user + ':' + str(self.ntc.ntrip_pass))
         }
         connection = HTTPConnection(self.ntc.ntrip_server)
-        connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
+        connection.request('GET', '/'+self.ntc.ntrip_stream,
+                           self.ntc.nmea_gga, headers)
         response = connection.getresponse()
-        if response.status != 200: raise Exception("blah")
+        if response.status != 200:
+            raise Exception("blah")
         buf = ""
         rmsg = Message()
         restart_count = 0
@@ -69,7 +76,7 @@ class ntripconnect(Thread):
                     data = response.read(2)
                     buf += data
                     typ = (ord(data[0]) * 256 + ord(data[1])) / 16
-                    print (str(datetime.now()), cnt, typ)
+                    print(str(datetime.now()), cnt, typ)
                     cnt = cnt + 1
                     for x in range(cnt):
                         data = response.read(1)
@@ -79,19 +86,23 @@ class ntripconnect(Thread):
                     rmsg.header.stamp = rospy.get_rostime()
                     self.ntc.pub.publish(rmsg)
                     buf = ""
-                else: print (data)
+                else:
+                    print(data)
             else:
                 ''' If zero length data, close connection and reopen it '''
                 restart_count = restart_count + 1
                 print("Zero length ", restart_count)
                 connection.close()
                 connection = HTTPConnection(self.ntc.ntrip_server)
-                connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
+                connection.request(
+                    'GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
                 response = connection.getresponse()
-                if response.status != 200: raise Exception("blah")
+                if response.status != 200:
+                    raise Exception("blah")
                 buf = ""
 
         connection.close()
+
 
 class ntripclient:
     def __init__(self):
@@ -116,6 +127,7 @@ class ntripclient:
         rospy.spin()
         if self.connection is not None:
             self.connection.stop = True
+
 
 if __name__ == '__main__':
     c = ntripclient()
