@@ -6,11 +6,8 @@ from datetime import datetime
 #from nmea_msgs.msg import Sentence
 from mavros_msgs.msg import RTCM
 
-<<<<<<< HEAD
-=======
 import datetime
 from httplib import HTTPConnection
->>>>>>> afd89f2f0e6cda015deaef1350576d71479792ab
 from base64 import b64encode
 from threading import Thread
 
@@ -44,59 +41,6 @@ class ntripconnect(Thread):
             'Authorization': 'Basic ' + b64encode(self.ntc.ntrip_user + ':' + str(self.ntc.ntrip_pass))
         }
         connection = HTTPConnection(self.ntc.ntrip_server)
-<<<<<<< HEAD
-        connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
-        response = connection.getresponse()
-        if response.status != 200: raise Exception("blah")
-        buf = ""
-        rmsg = Message()
-        restart_count = 0
-        while not self.stop:
-            '''
-            data = response.read(100)
-            pos = data.find('\r\n')
-            if pos != -1:
-                rmsg.message = buf + data[:pos]
-                rmsg.header.seq += 1
-                rmsg.header.stamp = rospy.get_rostime()
-                buf = data[pos+2:]
-                self.ntc.pub.publish(rmsg)
-            else: buf += data
-            '''
-
-            ''' This now separates individual RTCM messages and publishes each one on the same topic '''
-            data = response.read(1)
-            if len(data) != 0:
-                if ord(data[0]) == 211:
-                    buf += data
-                    data = response.read(2)
-                    buf += data
-                    cnt = ord(data[0]) * 256 + ord(data[1])
-                    data = response.read(2)
-                    buf += data
-                    typ = (ord(data[0]) * 256 + ord(data[1])) / 16
-                    #print (str(datetime.now()), cnt, typ)
-                    cnt = cnt + 1
-                    for x in range(cnt):
-                        data = response.read(1)
-                        buf += data
-                    rmsg.message = buf
-                    rmsg.header.seq += 1
-                    rmsg.header.stamp = rospy.get_rostime()
-                    self.ntc.pub.publish(rmsg)
-                    buf = ""
-                else: print (data)
-            else:
-                ''' If zero length data, close connection and reopen it '''
-                restart_count = restart_count + 1
-                print("Zero length ", restart_count)
-                connection.close()
-                connection = HTTPConnection(self.ntc.ntrip_server)
-                connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
-                response = connection.getresponse()
-                if response.status != 200: raise Exception("blah")
-                buf = ""
-=======
         now = datetime.datetime.utcnow()
         connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga % (now.hour, now.minute, now.second), headers)
         
@@ -121,7 +65,6 @@ class ntripconnect(Thread):
             rmsg.header.stamp = rospy.get_rostime()
             rmsg.data = data + chr(l1) + chr(l2) + pkt + parity
             self.ntc.pub.publish(rmsg)
->>>>>>> afd89f2f0e6cda015deaef1350576d71479792ab
 
         connection.close()
 
