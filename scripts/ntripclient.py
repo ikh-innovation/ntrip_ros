@@ -43,9 +43,27 @@ class ntripconnect(Thread):
             'Connection': 'close',
             'Authorization': 'Basic ' + b64encode(self.ntc.ntrip_user + ':' + str(self.ntc.ntrip_pass))
         }
-        connection = HTTPConnection(self.ntc.ntrip_server)
-        connection.request('GET', '/'+self.ntc.ntrip_stream,
+        connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+
+        trynum = 1
+
+        print("\n")
+
+        while trynum > 0:
+            try:
+                print("connecting")
+                connection.request('GET', '/'+self.ntc.ntrip_stream,
                            self.ntc.nmea_gga, headers)
+                print("\tsuccess")
+                trynum = 0
+            except:
+                rospy.sleep(1)
+                print('\tconnection fail for %d times' %trynum)
+                trynum += 1
+                print("\tretry")
+                connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+
+
         response = connection.getresponse()
         if response.status != 200:
             raise Exception("blah")
@@ -66,7 +84,30 @@ class ntripconnect(Thread):
             '''
 
             ''' This now separates individual RTCM messages and publishes each one on the same topic '''
-            data = response.read(1)
+            try:
+                data = response.read(1)
+            except:
+                print("internet connection problem")
+                trynum = 1
+                while trynum > 0:
+                    try:
+                        print("connecting")
+                        connection.request('GET', '/'+self.ntc.ntrip_stream,
+                                self.ntc.nmea_gga, headers)
+                        print("\tsuccess")
+                        trynum = 0
+                    except:
+                        rospy.sleep(1)
+                        print('\tconnection fail for %d times' %trynum)
+                        trynum += 1
+                        print("\tretry")
+                        connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+
+                response = connection.getresponse()
+                if response.status != 200:
+                    raise Exception("blah")
+                continue
+
             if len(data) != 0:
                 if ord(data[0]) == 211:
                     buf += data
@@ -94,13 +135,30 @@ class ntripconnect(Thread):
                 print("Zero length ", restart_count)
                 connection.close()
                 connection = HTTPConnection(self.ntc.ntrip_server)
-                connection.request(
-                    'GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
+                
+                trynum = 1
+                while trynum > 0:
+                    try:
+                        print("connecting......")
+                        connection.request('GET', '/'+self.ntc.ntrip_stream,
+                                self.ntc.nmea_gga, headers)
+                        print("\tsuccess")
+                        trynum = 0
+                    except:
+                        rospy.sleep(1)
+                        print("\tconnection fail for %d times" %trynum) 
+                        trynum += 1
+                        print("\tretry")
+                        connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+
                 response = connection.getresponse()
                 if response.status != 200:
                     raise Exception("blah")
                 buf = ""
 
+
+
+        print("function finished")
         connection.close()
 
 
@@ -121,10 +179,10 @@ class ntripclient:
 
         self.connection = None
         self.connection = ntripconnect(self)
-        self.connection.start()
+        self.connection.run()
 
     def run(self):
-        rospy.spin()
+        rospy.spin() 
         if self.connection is not None:
             self.connection.stop = True
 
