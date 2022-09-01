@@ -56,107 +56,104 @@ class ntripconnect(Thread):
                            self.ntc.nmea_gga, headers)
                 print("\tsuccess")
                 trynum = 0
+                response = connection.getresponse()
+                if response.status != 200:
+                    raise Exception("blah")
+                buf = ""
+                rmsg = Message()
+                restart_count = 0
+                while not self.stop:
+                    '''
+                    data = response.read(100)
+                    pos = data.find('\r\n')
+                    if pos != -1:
+                        rmsg.message = buf + data[:pos]
+                        rmsg.header.seq += 1
+                        rmsg.header.stamp = rospy.get_rostime()
+                        buf = data[pos+2:]
+                        self.ntc.pub.publish(rmsg)
+                    else: buf += data
+                    '''
+
+                    ''' This now separates individual RTCM messages and publishes each one on the same topic '''
+                    try:
+                        data = response.read(1)
+                    except:
+                        print("internet connection problem")
+                        trynum = 1
+                        while trynum > 0:
+                            try:
+                                print("connecting")
+                                connection.request('GET', '/'+self.ntc.ntrip_stream,
+                                        self.ntc.nmea_gga, headers)
+                                print("\tsuccess")
+                                trynum = 0
+                            except:
+                                rospy.sleep(1)
+                                print('\tconnection fail for %d times' %trynum)
+                                trynum += 1
+                                print("\tretry")
+                                connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+
+                        response = connection.getresponse()
+                        if response.status != 200:
+                            raise Exception("blah")
+                        continue
+
+                    if len(data) != 0:
+                        if ord(data[0]) == 211:
+                            buf += data
+                            data = response.read(2)
+                            buf += data
+                            cnt = ord(data[0]) * 256 + ord(data[1])
+                            data = response.read(2)
+                            buf += data
+                            typ = (ord(data[0]) * 256 + ord(data[1])) / 16
+                            print(str(datetime.now()), cnt, typ)
+                            cnt = cnt + 1
+                            for x in range(cnt):
+                                data = response.read(1)
+                                buf += data
+                            rmsg.message = buf
+                            rmsg.header.seq += 1
+                            rmsg.header.stamp = rospy.get_rostime()
+                            self.ntc.pub.publish(rmsg)
+                            buf = ""
+                        else:
+                            print(data)
+                    else:
+                        ''' If zero length data, close connection and reopen it '''
+                        restart_count = restart_count + 1
+                        print("Zero length ", restart_count)
+                        connection.close()
+                        connection = HTTPConnection(self.ntc.ntrip_server)
+                        
+                        trynum = 1
+                        while trynum > 0:
+                            try:
+                                print("connecting......")
+                                connection.request('GET', '/'+self.ntc.ntrip_stream,
+                                        self.ntc.nmea_gga, headers)
+                                print("\tsuccess")
+                                trynum = 0
+                            except:
+                                rospy.sleep(1)
+                                print("\tconnection fail for %d times" %trynum) 
+                                trynum += 1
+                                print("\tretry")
+                                connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+
+                        response = connection.getresponse()
+                        if response.status != 200:
+                            raise Exception("blah")
+
+                        buf = ""
             except:
                 rospy.sleep(1)
                 print('\tconnection fail for %d times' %trynum)
                 trynum += 1
                 print("\tretry")
                 connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
-
-
-        response = connection.getresponse()
-        if response.status != 200:
-            raise Exception("blah")
-        buf = ""
-        rmsg = Message()
-        restart_count = 0
-        while not self.stop:
-            '''
-            data = response.read(100)
-            pos = data.find('\r\n')
-            if pos != -1:
-                rmsg.message = buf + data[:pos]
-                rmsg.header.seq += 1
-                rmsg.header.stamp = rospy.get_rostime()
-                buf = data[pos+2:]
-                self.ntc.pub.publish(rmsg)
-            else: buf += data
-            '''
-
-            ''' This now separates individual RTCM messages and publishes each one on the same topic '''
-            try:
-                data = response.read(1)
-            except:
-                print("internet connection problem")
-                trynum = 1
-                while trynum > 0:
-                    try:
-                        print("connecting")
-                        connection.request('GET', '/'+self.ntc.ntrip_stream,
-                                self.ntc.nmea_gga, headers)
-                        print("\tsuccess")
-                        trynum = 0
-                    except:
-                        rospy.sleep(1)
-                        print('\tconnection fail for %d times' %trynum)
-                        trynum += 1
-                        print("\tretry")
-                        connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
-
-                response = connection.getresponse()
-                if response.status != 200:
-                    raise Exception("blah")
-                continue
-
-            if len(data) != 0:
-                if ord(data[0]) == 211:
-                    buf += data
-                    data = response.read(2)
-                    buf += data
-                    cnt = ord(data[0]) * 256 + ord(data[1])
-                    data = response.read(2)
-                    buf += data
-                    typ = (ord(data[0]) * 256 + ord(data[1])) / 16
-                    print(str(datetime.now()), cnt, typ)
-                    cnt = cnt + 1
-                    for x in range(cnt):
-                        data = response.read(1)
-                        buf += data
-                    rmsg.message = buf
-                    rmsg.header.seq += 1
-                    rmsg.header.stamp = rospy.get_rostime()
-                    self.ntc.pub.publish(rmsg)
-                    buf = ""
-                else:
-                    print(data)
-            else:
-                ''' If zero length data, close connection and reopen it '''
-                restart_count = restart_count + 1
-                print("Zero length ", restart_count)
-                connection.close()
-                connection = HTTPConnection(self.ntc.ntrip_server)
-                
-                trynum = 1
-                while trynum > 0:
-                    try:
-                        print("connecting......")
-                        connection.request('GET', '/'+self.ntc.ntrip_stream,
-                                self.ntc.nmea_gga, headers)
-                        print("\tsuccess")
-                        trynum = 0
-                    except:
-                        rospy.sleep(1)
-                        print("\tconnection fail for %d times" %trynum) 
-                        trynum += 1
-                        print("\tretry")
-                        connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
-
-                response = connection.getresponse()
-                if response.status != 200:
-                    raise Exception("blah")
-                buf = ""
-
-
 
         print("function finished")
         connection.close()
