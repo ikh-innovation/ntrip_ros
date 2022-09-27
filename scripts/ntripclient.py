@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 import rospy
 from datetime import datetime
@@ -15,14 +15,19 @@ from httplib import IncompleteRead
 ''' This is to fix the IncompleteRead error
     http://bobrochel.blogspot.com/2010/11/bad-servers-chunked-encoding-and.html'''
 import httplib
+
+
 def patch_http_response_read(func):
     def inner(*args):
         try:
             return func(*args)
-        except httplib.IncompleteRead, e:
+        except httplib.IncompleteRead as e:
             return e.partial
     return inner
+
+
 httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
+
 
 class ntripconnect(Thread):
     def __init__(self, ntc):
@@ -38,60 +43,76 @@ class ntripconnect(Thread):
             'Connection': 'close',
             'Authorization': 'Basic ' + b64encode(self.ntc.ntrip_user + ':' + str(self.ntc.ntrip_pass))
         }
-        connection = HTTPConnection(self.ntc.ntrip_server)
-        connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
-        response = connection.getresponse()
-        if response.status != 200: raise Exception("blah")
-        buf = ""
-        rmsg = Message()
-        restart_count = 0
-        while not self.stop:
-            '''
-            data = response.read(100)
-            pos = data.find('\r\n')
-            if pos != -1:
-                rmsg.message = buf + data[:pos]
-                rmsg.header.seq += 1
-                rmsg.header.stamp = rospy.get_rostime()
-                buf = data[pos+2:]
-                self.ntc.pub.publish(rmsg)
-            else: buf += data
-            '''
+        connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
 
-            ''' This now separates individual RTCM messages and publishes each one on the same topic '''
-            data = response.read(1)
-            if len(data) != 0:
-                if ord(data[0]) == 211:
-                    buf += data
-                    data = response.read(2)
-                    buf += data
-                    cnt = ord(data[0]) * 256 + ord(data[1])
-                    data = response.read(2)
-                    buf += data
-                    typ = (ord(data[0]) * 256 + ord(data[1])) / 16
-                    #print (str(datetime.now()), cnt, typ)
-                    cnt = cnt + 1
-                    for x in range(cnt):
-                        data = response.read(1)
-                        buf += data
-                    rmsg.message = buf
-                    rmsg.header.seq += 1
-                    rmsg.header.stamp = rospy.get_rostime()
-                    self.ntc.pub.publish(rmsg)
-                    buf = ""
-                else: print (data)
-            else:
-                ''' If zero length data, close connection and reopen it '''
-                restart_count = restart_count + 1
-                print("Zero length ", restart_count)
-                connection.close()
-                connection = HTTPConnection(self.ntc.ntrip_server)
-                connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
+        print("\n")
+
+        while True:
+            try:
+                print("connecting")
+                connection.request('GET', '/'+self.ntc.ntrip_stream,
+                           self.ntc.nmea_gga, headers)
+                print("\tsuccess")
                 response = connection.getresponse()
-                if response.status != 200: raise Exception("blah")
+                if response.status != 200:
+                    raise Exception("blah")
                 buf = ""
+                rmsg = Message()
+                restart_count = 0
+                while not self.stop:
+                    '''
+                    data = response.read(100)
+                    pos = data.find('\r\n')
+                    if pos != -1:
+                        rmsg.message = buf + data[:pos]
+                        rmsg.header.seq += 1
+                        rmsg.header.stamp = rospy.get_rostime()
+                        buf = data[pos+2:]
+                        self.ntc.pub.publish(rmsg)
+                    else: buf += data
+                    '''
 
+                    ''' This now separates individual RTCM messages and publishes each one on the same topic '''
+                    data = response.read(1)
+                    if len(data) != 0:
+                        if ord(data[0]) == 211:
+                            buf += data
+                            data = response.read(2)
+                            buf += data
+                            cnt = ord(data[0]) * 256 + ord(data[1])
+                            data = response.read(2)
+                            buf += data
+                            typ = (ord(data[0]) * 256 + ord(data[1])) / 16
+                            print(str(datetime.now()), cnt, typ)
+                            cnt = cnt + 1
+                            for x in range(cnt):
+                                data = response.read(1)
+                                buf += data
+                            rmsg.message = buf
+                            rmsg.header.seq += 1
+                            rmsg.header.stamp = rospy.get_rostime()
+                            self.ntc.pub.publish(rmsg)
+                            buf = ""
+                        else:
+                            print(data)
+                    else:
+                        ''' If zero length data, close connection and reopen it '''
+                        restart_count = restart_count + 1
+                        print("Zero length ", restart_count)
+                        connection.close()
+                        connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+                        print("Wrong data")
+            except:
+                print("\tconnection failed")
+                connection.close()        
+                rospy.sleep(1)
+                connection = HTTPConnection(self.ntc.ntrip_server, timeout = 3)
+                continue
+
+        print("function finished")
         connection.close()
+
+
 
 class ntripclient:
     def __init__(self):
@@ -110,14 +131,14 @@ class ntripclient:
 
         self.connection = None
         self.connection = ntripconnect(self)
-        self.connection.start()
+        self.connection.run()
 
     def run(self):
-        rospy.spin()
+        rospy.spin() 
         if self.connection is not None:
             self.connection.stop = True
+
 
 if __name__ == '__main__':
     c = ntripclient()
     c.run()
-
