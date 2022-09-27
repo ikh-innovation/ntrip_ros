@@ -3,9 +3,9 @@
 import rospy
 from datetime import datetime
 
-# from nmea_msgs.msg import Sentence
 from mavros_msgs.msg import RTCM
 import datetime
+
 from base64 import b64encode
 from threading import Thread
 
@@ -111,6 +111,7 @@ class ntripconnect(Thread):
                 connection = HTTPConnection(self.ntc.ntrip_server, timeout=3)
                 continue
 
+
         print("function finished")
         connection.close()
 
@@ -119,7 +120,7 @@ class ntripclient:
     def __init__(self):
         rospy.init_node('ntripclient', anonymous=True)
 
-        self.rtcm_topic = rospy.get_param('~rtcm_topic', 'rtcm')
+        self.rtcm_topic = rospy.get_param('~rtcm_topic')
         self.nmea_topic = rospy.get_param('~nmea_topic', 'nmea')
 
         self.ntrip_server = rospy.get_param('~ntrip_server')
