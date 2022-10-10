@@ -79,6 +79,7 @@ class ntripconnect(Thread):
                     ''' This now separates individual RTCM messages and publishes each one on the same topic '''
                     data = response.read(1)
                     if len(data) != 0:
+                        restart_count = 0
                         if ord(data[0]) == 211:
                             l1 = ord(response.read(1))
                             l2 = ord(response.read(1))
@@ -99,11 +100,15 @@ class ntripconnect(Thread):
                     else:
                         ''' If zero length data, close connection and reopen it '''
                         restart_count = restart_count + 1
-                        print("Zero length data...Restart count: ", restart_count)
+                        
+                        if (restart_count<20):
+                            print("Zero length data...Restart count: {}".format(restart_count))
                         connection.close()
                         connection = HTTPConnection(
                             self.ntc.ntrip_server, timeout=3)
-                        print("Wrong data")
+                        if (restart_count<20):
+                            print("Wrong data")
+                        
             except:
                 print("\tconnection failed")
                 connection.close()
