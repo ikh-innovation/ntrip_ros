@@ -1,5 +1,6 @@
 #!/usr/bin/python2
 
+from time import sleep
 import rospy
 from datetime import datetime
 
@@ -49,6 +50,7 @@ class ntripconnect(Thread):
 
         while True:
             try:
+                rospy.sleep(0.5)
                 print("connecting")
                 # connection.request('GET', '/'+self.ntc.ntrip_stream,
                 #                    self.ntc.nmea_gga, headers)
@@ -108,6 +110,7 @@ class ntripconnect(Thread):
                             self.ntc.ntrip_server, timeout=3)
                         if (restart_count<20):
                             print("Wrong data")
+                    rospy.sleep(0.1)
                         
             except:
                 print("\tconnection failed")
