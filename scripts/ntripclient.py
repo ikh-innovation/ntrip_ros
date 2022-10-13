@@ -34,6 +34,7 @@ class ntripconnect(Thread):
         super(ntripconnect, self).__init__()
         self.ntc = ntc
         self.stop = False
+        self.cnt_reconnection = 0
 
     def run(self):
 
@@ -43,27 +44,27 @@ class ntripconnect(Thread):
             'Connection': 'close',
             'Authorization': 'Basic ' + b64encode(self.ntc.ntrip_user + ':' + str(self.ntc.ntrip_pass))
         }
+        print("Try to connect...")
         connection = HTTPConnection(self.ntc.ntrip_server, timeout=3)
+        #print("\n")
 
-        print("\n")
-
-        while True:
+        while True and (not rospy.is_shutdown()):
             try:
-                print("connecting")
+                
                 # connection.request('GET', '/'+self.ntc.ntrip_stream,
                 #                    self.ntc.nmea_gga, headers)
                 now = datetime.datetime.utcnow()
                 connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga %
                                    (now.hour, now.minute, now.second), headers)
 
-                print("\tsuccess")
                 response = connection.getresponse()
                 if response.status != 200:
                     raise Exception("blah")
                 buf = ""
                 rmsg = RTCM()
                 restart_count = 0
-                while not self.stop:
+                print("\t...success!!!")
+                while ((not self.stop) and (not rospy.is_shutdown())):
                     '''
                     data = response.read(100)
                     pos = data.find('\r\n')
@@ -95,20 +96,30 @@ class ntripconnect(Thread):
                             self.ntc.pub.publish(rmsg)
                         else:
                             # print(data)
+                            #print("Incorrect data order")
                             pass
                     else:
                         ''' If zero length data, close connection and reopen it '''
                         restart_count = restart_count + 1
-                        print("Zero length data...Restart count: ", restart_count)
-                        connection.close()
-                        connection = HTTPConnection(
-                            self.ntc.ntrip_server, timeout=3)
-                        print("Wrong data")
+                        print("Zero length data...")
+                        if (restart_count >3):
+                            print("Zero Length Data for a long time! try to reconnect...")
+                            raise Exception("blah")
+                            #connection.close()
+                            #self.cnt_reconnection+=1
+                            #print("Try to reconnect (2 sec)...[{}]".format(self.cnt_reconnection))
+                            #connection = HTTPConnection(
+                            #    self.ntc.ntrip_server, timeout=3)
+                            restart_count = 0
+                        #print("Wrong data")
+                    rospy.sleep(0.1)
             except:
-                print("\tconnection failed")
+                print("\t...connection failed")
                 connection.close()
-                rospy.sleep(1)
-                connection = HTTPConnection(self.ntc.ntrip_server, timeout=3)
+                self.cnt_reconnection +=1
+                print("Try to reconnect (2 sec)...[{}]".format(self.cnt_reconnection))
+                connection = HTTPConnection(self.ntc.ntrip_server, timeout=2)
+                rospy.sleep(0.2)
                 continue
 
         print("function finished")

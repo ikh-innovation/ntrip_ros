@@ -8,11 +8,16 @@
  	 <param name="ntrip_pass" value="21092g68"/> 
 	 <param name="ntrip_stream" value="Single_Base_RTK"/> -->
 	 <!-- <param name="ntrip_stream" value="RTK_VRS_RTCM32_GGGB"/> -->
-
+<!-- 
 	 <param name="ntrip_server" value="rtk2go.com:2101"/>
 	 <param name="ntrip_user" value=""/>
 	 <param name="ntrip_pass" value="innovation"/>
-	 <param name="ntrip_stream" value="IKH_RTK_RTCM32"/>
+	 <param name="ntrip_stream" value="IKH_RTK_RTCM32"/> -->
+
+	 <param name="ntrip_server" value="147.102.5.240:2101"/>
+     <param name="ntrip_user" value="test"/>
+     <param name="ntrip_pass" value="test"/>
+     <param name="ntrip_stream" value="IKH_TEST"/>
 
  	 <param name="nmea_gga" value="$GPGGA,%02d%02d%04.2f,3758.755,N,02342.541,W,1,12,1.0,0.0,M,0.0,M,,*6F"/>
 	 <!-- <param name="nmea_gga" value="$GPGGA,105434.870,3758.754,N,02342.543,E,1,12,1.0,0.0,M,0.0,M,,*6C"/> -->
