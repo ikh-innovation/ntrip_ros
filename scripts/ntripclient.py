@@ -1,11 +1,12 @@
 #!/usr/bin/python2
 
+from time import sleep
 import rospy
 from datetime import datetime
 
-# from nmea_msgs.msg import Sentence
 from mavros_msgs.msg import RTCM
 import datetime
+
 from base64 import b64encode
 from threading import Thread
 
@@ -50,7 +51,6 @@ class ntripconnect(Thread):
 
         while True and (not rospy.is_shutdown()):
             try:
-                
                 # connection.request('GET', '/'+self.ntc.ntrip_stream,
                 #                    self.ntc.nmea_gga, headers)
                 now = datetime.datetime.utcnow()
@@ -80,6 +80,7 @@ class ntripconnect(Thread):
                     ''' This now separates individual RTCM messages and publishes each one on the same topic '''
                     data = response.read(1)
                     if len(data) != 0:
+                        restart_count = 0
                         if ord(data[0]) == 211:
                             l1 = ord(response.read(1))
                             l2 = ord(response.read(1))
@@ -122,6 +123,7 @@ class ntripconnect(Thread):
                 rospy.sleep(0.2)
                 continue
 
+
         print("function finished")
         connection.close()
 
@@ -130,7 +132,7 @@ class ntripclient:
     def __init__(self):
         rospy.init_node('ntripclient', anonymous=True)
 
-        self.rtcm_topic = rospy.get_param('~rtcm_topic', 'rtcm')
+        self.rtcm_topic = rospy.get_param('~rtcm_topic')
         self.nmea_topic = rospy.get_param('~nmea_topic', 'nmea')
 
         self.ntrip_server = rospy.get_param('~ntrip_server')
