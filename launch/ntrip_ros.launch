@@ -15,8 +15,8 @@
 		<param name="ntrip_pass" value="innovation"/>
 		<param name="ntrip_stream" value="IKH_RTK_RTCM32"/>
 		-->
-		<!-- <param name="ntrip_server" value="147.102.5.240:2101"/> -->
-		<param name="ntrip_server" value="10.8.0.1:2101" />
+		<param name="ntrip_server" value="147.102.5.240:2101"/>
+		<!-- <param name="ntrip_server" value="10.8.0.1:2101" /> -->
 		<param name="ntrip_user" value="test" />
 		<param name="ntrip_pass" value="test" />
 		<param name="ntrip_stream" value="IKH_TEST" />
