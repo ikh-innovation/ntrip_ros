@@ -27,6 +27,7 @@ httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
 
 class ntripconnect(Thread):
     def __init__(self, ntc):
+        print("Initialize!")
         super(ntripconnect, self).__init__()
         self.ntc = ntc
         self.stop = False
@@ -57,7 +58,8 @@ class ntripconnect(Thread):
 
         while (not rospy.is_shutdown()):
             try:
-                now = datetime.datetime.utcnow()
+                print("Try to request connection!")
+                now = datetime.utcnow()
                 connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga % (now.hour, now.minute, now.second), headers)
 
                 response = connection.getresponse()
@@ -98,9 +100,9 @@ class ntripconnect(Thread):
                             
                     rospy.sleep(0.1)
             except Exception as e:
-                print("\t...connection failed!")
+                print("\t...connection failed! {}".format(e))
                 print ("Server: {} | Mount Point: {}".format(self.ntc.ntrip_server,self.ntc.ntrip_stream))
-                print("Try to restart connection. 1. Connection closed!")
+                print("Try to restart connection...Connection closed!")
                 connection.close()
                 self.cnt_reconnection += 1
                 print("Try to reconnect (2 sec)...[{}]".format(self.cnt_reconnection))
