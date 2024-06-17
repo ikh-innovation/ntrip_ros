@@ -3,18 +3,12 @@
 from time import sleep
 import rospy
 from datetime import datetime
-
 from mavros_msgs.msg import RTCM
-import datetime
-
 from base64 import b64encode
 from threading import Thread
 
 from httplib import HTTPConnection
 from httplib import IncompleteRead
-
-''' This is to fix the IncompleteRead error
-    http://bobrochel.blogspot.com/2010/11/bad-servers-chunked-encoding-and.html'''
 import httplib
 
 
@@ -38,7 +32,6 @@ class ntripconnect(Thread):
         self.cnt_reconnection = 0
 
     def run(self):
-
         headers = {
             'Ntrip-Version': 'Ntrip/2.0',
             'User-Agent': 'NTRIP ntrip_ros',
@@ -47,15 +40,11 @@ class ntripconnect(Thread):
         }
         print("Try to connect...")
         connection = HTTPConnection(self.ntc.ntrip_server, timeout=3)
-        # print("\n")
 
         while True and (not rospy.is_shutdown()):
             try:
-                # connection.request('GET', '/'+self.ntc.ntrip_stream,
-                #                    self.ntc.nmea_gga, headers)
                 now = datetime.datetime.utcnow()
-                connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga %
-                                   (now.hour, now.minute, now.second), headers)
+                connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga % (now.hour, now.minute, now.second), headers)
 
                 response = connection.getresponse()
                 if response.status != 200:
@@ -65,19 +54,6 @@ class ntripconnect(Thread):
                 restart_count = 0
                 print("\t...success!!!")
                 while ((not self.stop) and (not rospy.is_shutdown())):
-                    '''
-                    data = response.read(100)
-                    pos = data.find('\r\n')
-                    if pos != -1:
-                        rmsg.message = buf + data[:pos]
-                        rmsg.header.seq += 1
-                        rmsg.header.stamp = rospy.get_rostime()
-                        buf = data[pos+2:]
-                        self.ntc.pub.publish(rmsg)
-                    else: buf += data
-                    '''
-
-                    ''' This now separates individual RTCM messages and publishes each one on the same topic '''
                     data = response.read(1)
                     if len(data) != 0:
                         restart_count = 0
@@ -85,7 +61,6 @@ class ntripconnect(Thread):
                             l1 = ord(response.read(1))
                             l2 = ord(response.read(1))
                             pkt_len = ((l1 & 0x3) << 8)+l2
-
                             pkt = response.read(pkt_len)
                             parity = response.read(3)
                             if len(pkt) != pkt_len:
@@ -97,34 +72,22 @@ class ntripconnect(Thread):
                             rmsg.data = data + chr(l1) + chr(l2) + pkt + parity
                             self.ntc.pub.publish(rmsg)
                         else:
-                            # print(data)
-                            #print("Incorrect data order")
                             pass
                     else:
-                        ''' If zero length data, close connection and reopen it '''
-                        restart_count = restart_count + 1
-                        print("Zero length data...")
-                        if (restart_count > 3):
-                            print(
-                                "Zero Length Data for a long time! try to reconnect...")
+                        restart_count += 1
+                        if restart_count > 3:
+                            print("Zero Length Data for a long time!")
                             raise Exception("blah")
-                            # connection.close()
-                            # self.cnt_reconnection+=1
-                            #print("Try to reconnect (2 sec)...[{}]".format(self.cnt_reconnection))
-                            # connection = HTTPConnection(
-                            #    self.ntc.ntrip_server, timeout=3)
-                            restart_count = 0
-                        #print("Wrong data")
+                            
                     rospy.sleep(0.1)
-            except:
-                print("\t...connection failed")
+            except Exception as e:
+                print("\t...connection failed!")
+                print("Try to restart connection. 1. Connection closed!")
                 connection.close()
                 self.cnt_reconnection += 1
-                print("Try to reconnect (2 sec)...[{}]".format(
-                    self.cnt_reconnection))
+                print("Try to reconnect (2 sec)...[{}]".format(self.cnt_reconnection))
                 connection = HTTPConnection(self.ntc.ntrip_server, timeout=2)
                 rospy.sleep(0.2)
-                continue
 
         print("function finished")
         connection.close()
@@ -134,9 +97,13 @@ class ntripclient:
     def __init__(self):
         rospy.init_node('ntripclient', anonymous=True)
 
-        self.rtcm_topic = rospy.get_param('~rtcm_topic')
+        self.rtcm_topic = rospy.get_param('~rtcm_topic',"rtcm")
         self.nmea_topic = rospy.get_param('~nmea_topic', 'nmea')
 
+        if ((not rospy.get_param('~ntrip_server')) or (not rospy.has_param('~ntrip_user')) or (not rospy.get_param('~ntrip_pass')) or (not rospy.get_param('~ntrip_stream'))):
+            rospy.logerr("NTRIP ROS has not been configured properly!")
+            exit(-1)
+        
         self.ntrip_server = rospy.get_param('~ntrip_server')
         self.ntrip_user = rospy.get_param('~ntrip_user')
         self.ntrip_pass = rospy.get_param('~ntrip_pass')
