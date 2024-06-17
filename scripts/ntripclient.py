@@ -4,6 +4,7 @@ from time import sleep
 import rospy
 from datetime import datetime
 from mavros_msgs.msg import RTCM
+from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
 from base64 import b64encode
 from threading import Thread
 
@@ -30,6 +31,19 @@ class ntripconnect(Thread):
         self.ntc = ntc
         self.stop = False
         self.cnt_reconnection = 0
+        
+        self._enable_service_handler = rospy.Service("~enable", SetBool, self.enable_service_callback)
+    
+    def enable_service_callback(self,req):
+        if req.data and self.stop:
+            self.stop = False
+            return SetBoolResponse(success=True, message="The NTRIP client is now active!")
+        elif not req.data and not self.stop:
+            self.stop = True
+            return SetBoolResponse(success=True, message="The NTRIP client is now disabled!")
+        else:
+            message = "The NTRIP client is already active!" if not self.stop else "The NTRIP client is already disabled!"
+            return SetBoolResponse(success=True, message=message)
 
     def run(self):
         headers = {
@@ -82,6 +96,7 @@ class ntripconnect(Thread):
                     rospy.sleep(0.1)
             except Exception as e:
                 print("\t...connection failed!")
+                print ("Server: {} | Mount Point: {}".format(self.ntc.ntrip_server,self.ntc.ntrip_stream))
                 print("Try to restart connection. 1. Connection closed!")
                 connection.close()
                 self.cnt_reconnection += 1
