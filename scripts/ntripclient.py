@@ -67,7 +67,10 @@ class ntripconnect(Thread):
                 rmsg = RTCM()
                 restart_count = 0
                 print("\t...success!!!")
-                while ((not self.stop) and (not rospy.is_shutdown())):
+                if(self.stop):
+                    print("NTRIP ROS Disabled")
+                    continue
+                while ((not rospy.is_shutdown()) and (not self.stop)):
                     data = response.read(1)
                     if len(data) != 0:
                         restart_count = 0
