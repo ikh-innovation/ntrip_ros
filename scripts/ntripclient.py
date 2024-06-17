@@ -41,7 +41,7 @@ class ntripconnect(Thread):
         print("Try to connect...")
         connection = HTTPConnection(self.ntc.ntrip_server, timeout=3)
 
-        while True and (not rospy.is_shutdown()):
+        while (not rospy.is_shutdown()):
             try:
                 now = datetime.datetime.utcnow()
                 connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga % (now.hour, now.minute, now.second), headers)
