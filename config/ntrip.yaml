@@ -1,5 +1,5 @@
-ntrip_server: 147.102.5.240:2101
+ntrip_server: 185.25.22.91:2101
 ntrip_user: test
 ntrip_pass: test
-ntrip_stream: IKH_RTK_RTCM32
+ntrip_stream: IKH_RTK_NTUA_RTCM32
 nmea_gga: $GPGGA,%02d%02d%04.2f,3758.755,N,02342.541,W,1,12,1.0,0.0,M,0.0,M,,*6F
