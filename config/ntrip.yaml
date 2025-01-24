@@ -1,5 +1,5 @@
-ntrip_server: 185.25.22.91:2101
+ntrip_server: aristosrobot.com:2101
 ntrip_user: test
 ntrip_pass: test
-ntrip_stream: IKH_RTK_NTUA_RTCM32
-nmea_gga: $GPGGA,%02d%02d%04.2f,3758.755,N,02342.541,W,1,12,1.0,0.0,M,0.0,M,,*6F
+ntrip_stream: IKH_CHIRIQUI_RTCM32 #IKH_CHIRIQUI_RTCM32 # IKH_DOMOKOS_RTCM32 #IKH_CHIRIQUI_RTCM32
+nmea_gga: $GPGGA,%02d%02d%04.2f,0823.309,N,08219.450,W,1,12,1.0,0.0,M,0.0,M,,*7E
