@@ -8,8 +8,10 @@ from threading import Thread, Event
 from httplib import HTTPConnection, IncompleteRead
 
 
+
 class ntripconnect(Thread):
     def __init__(self, ntc):
+        print("Initialize!")
         super(ntripconnect, self).__init__()
         self.ntc = ntc
         self.cnt_reconnection = 0
@@ -30,6 +32,7 @@ class ntripconnect(Thread):
             )
             rospy.sleep(30)
 
+
     def run(self):
         headers = {
             'Ntrip-Version': 'Ntrip/2.0',
@@ -46,6 +49,7 @@ class ntripconnect(Thread):
                 now = datetime.utcnow()
                 gga_sentence = self.ntc.nmea_gga % (now.hour, now.minute, now.second)
                 connection.request('GET', '/' + self.ntc.ntrip_stream, gga_sentence, headers)
+
                 response = connection.getresponse()
                 
                 
@@ -104,6 +108,7 @@ class ntripconnect(Thread):
                 connection = HTTPConnection(self.ntc.ntrip_server, timeout=self.ntc.timeout)
                 rospy.sleep(2)
 
+
         connection.close()
         rospy.loginfo("NTRIP connection thread stopped.")
 
@@ -115,8 +120,9 @@ class ntripclient:
     def __init__(self):
         rospy.init_node('ntripclient', anonymous=True)
 
-        self.rtcm_topic = rospy.get_param('~rtcm_topic')
+        self.rtcm_topic = rospy.get_param('~rtcm_topic',"rtcm")
         self.nmea_topic = rospy.get_param('~nmea_topic', 'nmea')
+
         self.ntrip_server = rospy.get_param('~ntrip_server')
         self.ntrip_user = rospy.get_param('~ntrip_user')
         self.ntrip_pass = rospy.get_param('~ntrip_pass')
