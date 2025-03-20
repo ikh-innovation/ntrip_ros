@@ -37,7 +37,7 @@ class ntripconnect(Thread):
                         (self.non_rtcm_count / self.data_count) * 100.0,
                         (self.rtcm_count / self.data_count) * 100.0)
             )
-            rospy.sleep(30)
+            rospy.sleep(3600)
 
     def run(self):
         headers = {
