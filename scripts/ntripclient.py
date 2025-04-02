@@ -168,13 +168,24 @@ class ntripclient:
             lon_dir = 'E' if lon >= 0 else 'W'
 
             # Generate the $GPGGA string
-            self.latest_gga = "$GPGGA,{:02d}{:02d}{:02d}.00,{:02d}{:07.4f},{}," \
+            gga_no_checksum = "$GPGGA,{:02d}{:02d}{:02d}.00,{:02d}{:07.4f},{}," \
                               "{:03d}{:07.4f},{},{},1,{:02.1f},M,{:.1f},M,,".format(
                 datetime.utcnow().hour, datetime.utcnow().minute, datetime.utcnow().second,
                 lat_deg, lat_min, lat_dir,
                 lon_deg, lon_min, lon_dir,
-                8, 0.9, alt
+                30,  # Number of satellites (adjust if needed)
+                0.9,  # HDOP (adjust if needed) 
+                alt
             )
+
+            # Calculate checksum (XOR of all characters after '$' and before '*')
+            checksum = 0
+            for char in gga_no_checksum:
+                checksum ^= ord(char)
+            checksum_hex = "{:02X}".format(checksum)
+
+            # Append checksum to the NMEA sentence
+            self.latest_gga = "${}*{}".format(gga_no_checksum, checksum_hex)
             rospy.loginfo("Generated GGA: {}".format(self.latest_gga))
         except Exception as e:
             rospy.logerr("Error generating GGA string: {}".format(e))
