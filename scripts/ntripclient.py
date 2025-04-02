@@ -133,6 +133,8 @@ class ntripclient:
         self.ntrip_stream = rospy.get_param('~ntrip_stream')
         self.nmea_gga = rospy.get_param('~nmea_gga')  # Default GGA string from YAML
         self.timeout = rospy.get_param('~timeout', 3)
+        # paramter for print log period
+        self.log_period = rospy.get_param('~log_period', 3600)
 
         self.pub = rospy.Publisher(self.rtcm_topic, RTCM, queue_size=50)
 
