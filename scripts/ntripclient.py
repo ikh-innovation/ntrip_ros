@@ -132,7 +132,7 @@ class ntripclient:
         self.ntrip_pass = rospy.get_param('~ntrip_pass')
         self.ntrip_stream = rospy.get_param('~ntrip_stream')
         self.nmea_gga = rospy.get_param('~nmea_gga')  # Default GGA string from YAML
-        
+        self.timeout = rospy.get_param('~timeout', 3.0)
 
         self.pub = rospy.Publisher("/rtcm", RTCM, queue_size=50)
 
