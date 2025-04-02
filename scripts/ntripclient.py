@@ -18,6 +18,9 @@ class ntripconnect(Thread):
         self.non_rtcm_count = 0.0
         self.rtcm_count = 0.0
         self.data_count = 0.0
+        # paramter for print log period
+        self.log_period = rospy.get_param('~log_period', 3600)
+        
         self.stop_event = Event()
         self.log_thread = Thread(target=self.log_status_periodically)
         self.log_thread.daemon = True  # Ensure this thread exits with the main program
@@ -37,7 +40,7 @@ class ntripconnect(Thread):
                         (self.non_rtcm_count / self.data_count) * 100.0,
                         (self.rtcm_count / self.data_count) * 100.0)
             )
-            rospy.sleep(3600)
+            rospy.sleep(self.log_period)
 
     def run(self):
         headers = {
@@ -124,24 +127,19 @@ class ntripclient:
     def __init__(self):
         rospy.init_node('ntripclient', anonymous=True)
 
-        self.rtcm_topic = rospy.get_param('~rtcm_topic', "rtcm")
-        # self.nmea_topic = rospy.get_param('~nmea_topic', '')
-
         self.ntrip_server = rospy.get_param('~ntrip_server')
         self.ntrip_user = rospy.get_param('~ntrip_user')
         self.ntrip_pass = rospy.get_param('~ntrip_pass')
         self.ntrip_stream = rospy.get_param('~ntrip_stream')
         self.nmea_gga = rospy.get_param('~nmea_gga')  # Default GGA string from YAML
-        self.timeout = rospy.get_param('~timeout', 3)
-        # paramter for print log period
-        self.log_period = rospy.get_param('~log_period', 3600)
+        
 
-        self.pub = rospy.Publisher(self.rtcm_topic, RTCM, queue_size=50)
+        self.pub = rospy.Publisher("/rtcm", RTCM, queue_size=50)
 
         self.latest_gga = None  # Store dynamically generated GGA
         try:
             msg = rospy.wait_for_message("/gps/fix",NavSatFix,5.0)
-            self.gps_available(msg)
+            self.gps_callback(msg)
         except rospy.ROSException:
             rospy.logerr("Cannot get gps data to generate GGA string. Default string: \n{}".format(self.nmea_gga))
         except Exception as e:
