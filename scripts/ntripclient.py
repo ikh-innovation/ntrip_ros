@@ -18,6 +18,9 @@ class ntripconnect(Thread):
         self.non_rtcm_count = 0.0
         self.rtcm_count = 0.0
         self.data_count = 0.0
+        # paramter for print log period
+        self.log_period = rospy.get_param('~log_period', 3600)
+        
         self.stop_event = Event()
         self.log_thread = Thread(target=self.log_status_periodically)
         self.log_thread.daemon = True  # Ensure this thread exits with the main program
@@ -37,7 +40,7 @@ class ntripconnect(Thread):
                         (self.non_rtcm_count / self.data_count) * 100.0,
                         (self.rtcm_count / self.data_count) * 100.0)
             )
-            rospy.sleep(30)
+            rospy.sleep(self.log_period)
 
     def run(self):
         headers = {
@@ -124,22 +127,19 @@ class ntripclient:
     def __init__(self):
         rospy.init_node('ntripclient', anonymous=True)
 
-        self.rtcm_topic = rospy.get_param('~rtcm_topic', "rtcm")
-        # self.nmea_topic = rospy.get_param('~nmea_topic', '')
-
         self.ntrip_server = rospy.get_param('~ntrip_server')
         self.ntrip_user = rospy.get_param('~ntrip_user')
         self.ntrip_pass = rospy.get_param('~ntrip_pass')
         self.ntrip_stream = rospy.get_param('~ntrip_stream')
         self.nmea_gga = rospy.get_param('~nmea_gga')  # Default GGA string from YAML
-        self.timeout = rospy.get_param('~timeout', 3)
+        self.timeout = rospy.get_param('~timeout', 3.0)
 
-        self.pub = rospy.Publisher(self.rtcm_topic, RTCM, queue_size=50)
+        self.pub = rospy.Publisher("/rtcm", RTCM, queue_size=50)
 
         self.latest_gga = None  # Store dynamically generated GGA
         try:
             msg = rospy.wait_for_message("/gps/fix",NavSatFix,5.0)
-            self.gps_available(msg)
+            self.gps_callback(msg)
         except rospy.ROSException:
             rospy.logerr("Cannot get gps data to generate GGA string. Default string: \n{}".format(self.nmea_gga))
         except Exception as e:
@@ -168,13 +168,24 @@ class ntripclient:
             lon_dir = 'E' if lon >= 0 else 'W'
 
             # Generate the $GPGGA string
-            self.latest_gga = "$GPGGA,{:02d}{:02d}{:02d}.00,{:02d}{:07.4f},{}," \
+            gga_no_checksum = "$GPGGA,{:02d}{:02d}{:02d}.00,{:02d}{:07.4f},{}," \
                               "{:03d}{:07.4f},{},{},1,{:02.1f},M,{:.1f},M,,".format(
                 datetime.utcnow().hour, datetime.utcnow().minute, datetime.utcnow().second,
                 lat_deg, lat_min, lat_dir,
                 lon_deg, lon_min, lon_dir,
-                8, 0.9, alt
+                30,  # Number of satellites (adjust if needed)
+                0.9,  # HDOP (adjust if needed) 
+                alt
             )
+
+            # Calculate checksum (XOR of all characters after '$' and before '*')
+            checksum = 0
+            for char in gga_no_checksum:
+                checksum ^= ord(char)
+            checksum_hex = "{:02X}".format(checksum)
+
+            # Append checksum to the NMEA sentence
+            self.latest_gga = "${}*{}".format(gga_no_checksum, checksum_hex)
             rospy.loginfo("Generated GGA: {}".format(self.latest_gga))
         except Exception as e:
             rospy.logerr("Error generating GGA string: {}".format(e))
