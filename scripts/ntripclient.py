@@ -168,14 +168,21 @@ class ntripclient:
             lon_dir = 'E' if lon >= 0 else 'W'
 
             # Generate the $GPGGA string
-            gga_no_checksum = "$GPGGA,{:02d}{:02d}{:02d}.00,{:02d}{:07.4f},{}," \
-                              "{:03d}{:07.4f},{},{},1,{:02.1f},M,{:.1f},M,,".format(
-                datetime.utcnow().hour, datetime.utcnow().minute, datetime.utcnow().second,
-                lat_deg, lat_min, lat_dir,
-                lon_deg, lon_min, lon_dir,
-                30,  # Number of satellites (adjust if needed)
-                0.9,  # HDOP (adjust if needed) 
-                alt
+            gga_no_checksum = "GPGGA,{:02d}{:02d}{:06.3f},{:02d}{:06.3f},{}," \
+                  "{:03d}{:06.3f},{},{},{},{:.1f},M,{:.1f},M,,".format(
+                    datetime.utcnow().hour,  # UTC hour
+                    datetime.utcnow().minute,  # UTC minute
+                    datetime.utcnow().second + datetime.utcnow().microsecond / 1e6,  # UTC second with milliseconds
+                    lat_deg,  # Latitude degrees
+                    lat_min,  # Latitude minutes with 3 decimal places
+                    lat_dir,  # Latitude direction (N/S)
+                    lon_deg,  # Longitude degrees
+                    lon_min,  # Longitude minutes with 3 decimal places
+                    lon_dir,  # Longitude direction (E/W)
+                    1,  # Fix quality (1 = GPS fix)
+                    30,  # Number of satellites (adjusted to match the example)
+                    1.0,  # HDOP
+                    alt  # Altitude above mean sea level
             )
 
             # Calculate checksum (XOR of all characters after '$' and before '*')
