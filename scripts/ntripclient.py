@@ -59,8 +59,8 @@ class ntripconnect(Thread):
             try:
                 now = datetime.utcnow()
                 gga_sentence = self.ntc.latest_gga or self.ntc.nmea_gga  # Use latest GGA if available, else fallback
-                connection.request('GET', '/' + self.ntc.ntrip_stream, gga_sentence, headers)
-
+                #connection.request('GET', '/' + self.ntc.ntrip_stream, gga_sentence, headers)
+                connection.request('GET', '/' + self.ntc.ntrip_stream, "", headers)
                 response = connection.getresponse()
 
                 if response.status != 200:
@@ -112,7 +112,7 @@ class ntripconnect(Thread):
                         except UnicodeDecodeError:
                             rospy.logwarn("Non-RTCM Message (binary): {}".format(data.encode("hex")))
 
-                rospy.sleep(0.05)
+                rospy.sleep(0.02)
 
             except Exception as e:
                 rospy.logerr("Connection error: {}. Retrying...".format(e))
@@ -140,7 +140,7 @@ class ntripclient:
         self.nmea_gga = rospy.get_param('~nmea_gga')  # Default GGA string from YAML
         self.timeout = rospy.get_param('~timeout', 3.0)
 
-        self.pub = rospy.Publisher("/rtcm", RTCM, queue_size=10)
+        self.pub = rospy.Publisher("/rtcm", RTCM, queue_size=150)
 
         self.latest_gga = None  # Store dynamically generated GGA
         try:
