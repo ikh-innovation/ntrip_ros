@@ -26,7 +26,7 @@ class ntripconnect(Thread):
         self.log_thread.daemon = True  # Ensure this thread exits with the main program
 
     def log_status_periodically(self):
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and not self.stop_event.is_set():
             if self.data_count == 0:
                 rospy.sleep(30)
                 continue
@@ -64,7 +64,13 @@ class ntripconnect(Thread):
                 response = connection.getresponse()
 
                 if response.status != 200:
-                    raise Exception("Failed to connect to NTRIP server: {}".format(response.reason))
+                    # try to read a small error message (often helpful)
+                    err = ""
+                    try:
+                        err = response.read(200)
+                    except Exception:
+                        pass
+                    raise Exception("Failed: %d %s body=%s" % (response.status, response.reason, err))
 
                 # Log server and mount point information
                 rospy.loginfo("Connected to NTRIP server: {} (IP/Domain)".format(self.ntc.ntrip_server))
@@ -106,7 +112,7 @@ class ntripconnect(Thread):
                         except UnicodeDecodeError:
                             rospy.logwarn("Non-RTCM Message (binary): {}".format(data.encode("hex")))
 
-                rospy.sleep(0.1)
+                rospy.sleep(0.05)
 
             except Exception as e:
                 rospy.logerr("Connection error: {}. Retrying...".format(e))
@@ -134,7 +140,7 @@ class ntripclient:
         self.nmea_gga = rospy.get_param('~nmea_gga')  # Default GGA string from YAML
         self.timeout = rospy.get_param('~timeout', 3.0)
 
-        self.pub = rospy.Publisher("/rtcm", RTCM, queue_size=50)
+        self.pub = rospy.Publisher("/rtcm", RTCM, queue_size=10)
 
         self.latest_gga = None  # Store dynamically generated GGA
         try:
