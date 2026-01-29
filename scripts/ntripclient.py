@@ -74,15 +74,14 @@ class ntripconnect(Thread):
 
                 # Log server and mount point information
                 rospy.loginfo("Connected to NTRIP server: {} (IP/Domain)".format(self.ntc.ntrip_server))
-                rospy.loginfo("Mount point: {}".format(self.ntc.ntrip_stream))
+                rospy.loginfo("Requested Mount point: {}".format(self.ntc.ntrip_stream))
 
                 buf = ""
                 rmsg = RTCM()
-
                 while not self.stop_event.is_set() and not rospy.is_shutdown():
-                    data = response.read(1)  # Read in chunks for efficiency
+                    data = response.read(1)
                     if not data:
-                        rospy.logwarn("No data received. Attempting to reconnect...")
+                        rospy.logwarn("No data received from server and mount point. Attempting to reconnect...")
                         raise Exception("No data received.")
                     self.data_count += 1.0
                     if ord(data[0]) == 211:  # RTCM message start
@@ -93,7 +92,6 @@ class ntripconnect(Thread):
                         pkt_len = ((l1 & 0x3) << 8) + l2
                         pkt = response.read(pkt_len)
                         parity = response.read(3)
-
                         if len(pkt) != pkt_len:
                             rospy.logerr("Packet length mismatch: expected {}, got {}".format(pkt_len, len(pkt)))
                             continue
@@ -102,6 +100,7 @@ class ntripconnect(Thread):
                         rmsg.header.stamp = rospy.get_rostime()
                         rmsg.data = data + chr(l1) + chr(l2) + pkt + parity
                         self.ntc.pub.publish(rmsg)
+                        rospy.sleep(0.01) # Slight delay to prevent CPU overload
                     else:
                         # Count and log non-RTCM messages
                         self.non_rtcm_count += 1.0
@@ -111,16 +110,16 @@ class ntripconnect(Thread):
                             rospy.logwarn("Non-RTCM Message: {}".format(message.strip()))
                         except UnicodeDecodeError:
                             rospy.logwarn("Non-RTCM Message (binary): {}".format(data.encode("hex")))
-
-                rospy.sleep(0.02)
+                        rospy.sleep(0.001)
 
             except Exception as e:
                 rospy.logerr("Connection error: {}. Retrying...".format(e))
                 connection.close()
                 self.cnt_reconnection += 1
                 rospy.loginfo("Try to reconnect (2 sec)...[{}]".format(self.cnt_reconnection))
-                connection = HTTPConnection(self.ntc.ntrip_server, timeout=self.ntc.timeout)
                 rospy.sleep(2)
+                connection = HTTPConnection(self.ntc.ntrip_server, timeout=self.ntc.timeout)
+                
 
         connection.close()
         rospy.loginfo("NTRIP connection thread stopped.")
@@ -144,6 +143,7 @@ class ntripclient:
 
         self.latest_gga = None  # Store dynamically generated GGA
         try:
+            rospy.loginfo("Waiting for GPS data to generate GGA string...")
             msg = rospy.wait_for_message("/gps/fix",NavSatFix,5.0)
             self.gps_callback(msg)
         except rospy.ROSException:
